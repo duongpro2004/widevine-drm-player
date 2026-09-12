@@ -84,12 +84,28 @@ function saveVideos(videos) {
 }
 
 // Middleware
+app.set('trust proxy', true); // Trust reverse proxies (Render, Cloudflare, Nginx) for accurate client IP
 app.use(cors());
+
+// Helper function to extract exact Source IP
+function getClientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.headers['x-real-ip'] || 
+         req.headers['cf-connecting-ip'] || 
+         req.headers['true-client-ip'] || 
+         req.ip || 
+         req.socket?.remoteAddress || 
+         'Unknown IP';
+}
 
 // Raw binary body parser for license requests (Widevine license challenge is binary octet-stream)
 app.use('/api/drm/license', express.raw({ type: '*/*', limit: '10mb' }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 // ==========================================
 // DRM LICENSE SERVER & DEBUG ENDPOINTS
@@ -101,6 +117,7 @@ app.post('/api/drm/license', async (req, res) => {
   const clientHeaders = { ...req.headers };
   const rawBody = req.body || Buffer.alloc(0);
   const bodySize = Buffer.isBuffer(rawBody) ? rawBody.length : (typeof rawBody === 'string' ? Buffer.byteLength(rawBody) : 0);
+  const sourceIp = getClientIp(req);
 
   // Target upstream Widevine server (default: Google Shaka CWIP)
   const targetServer = req.query.target || 'https://cwip-shaka-player.appspot.com/no_auth';
@@ -110,7 +127,8 @@ app.post('/api/drm/license', async (req, res) => {
     timestamp: new Date().toISOString(),
     method: req.method,
     url: req.originalUrl,
-    clientIp: req.ip || req.connection?.remoteAddress,
+    clientIp: sourceIp,
+    sourceIp: sourceIp,
     headers: clientHeaders,
     customHeadersDetected: Object.entries(clientHeaders).filter(([key]) =>
       ['authorization', 'x-', 'token', 'user'].some(prefix => key.toLowerCase().includes(prefix))
@@ -122,7 +140,7 @@ app.post('/api/drm/license', async (req, res) => {
     status: 'processing'
   };
 
-  console.log(`\n📥 [DRM License Request Received] ID: ${logId}`);
+  console.log(`\n📥 [DRM License Request] ID: ${logId} | Source IP: ${sourceIp}`);
   console.log(`Headers:`, JSON.stringify(clientHeaders, null, 2));
 
   try {
@@ -178,6 +196,7 @@ app.post('/api/drm/license', async (req, res) => {
 app.post('/api/drm/clearkey', express.json(), (req, res) => {
   const logId = 'ck_' + Date.now();
   const clientHeaders = { ...req.headers };
+  const sourceIp = getClientIp(req);
   
   // Custom Key Configuration (Sample 128-bit AES Key & KeyID)
   // Key ID: 0123456789abcdef0123456789abcdef -> Base64: ASNFZ4mrze8BI0VniavN7w==
@@ -198,7 +217,8 @@ app.post('/api/drm/clearkey', express.json(), (req, res) => {
     timestamp: new Date().toISOString(),
     method: req.method,
     url: req.originalUrl,
-    clientIp: req.ip || req.connection?.remoteAddress,
+    clientIp: sourceIp,
+    sourceIp: sourceIp,
     headers: clientHeaders,
     customHeadersDetected: clientHeaders,
     query: req.query,

@@ -431,12 +431,17 @@ function renderDrmDebugLogs(logs) {
     return `
       <div class="glass-card rounded-xl border border-slate-800 p-3 text-xs">
         <!-- Request Header Line -->
-        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-          <div class="flex items-center space-x-2">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-800">
+          <div class="flex flex-wrap items-center gap-1.5">
             <span class="px-2 py-0.5 rounded text-[10px] font-bold font-mono ${isSuccess ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}">
               ${log.method} ${log.statusCode || 200}
             </span>
             <span class="font-mono text-slate-300 font-semibold text-[11px]">${escapeHtml(log.url)}</span>
+            <!-- Prominent Source IP Badge -->
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center space-x-1 shadow-sm" title="Địa chỉ IP nguồn (Client Source IP)">
+              <i class="fa-solid fa-location-dot text-[9px] text-sky-400"></i>
+              <span>IP: <strong class="text-sky-200">${escapeHtml(log.sourceIp || log.clientIp || '127.0.0.1')}</strong></span>
+            </span>
           </div>
           <div class="flex items-center space-x-2 text-[10px] text-slate-400 font-mono">
             <span><i class="fa-regular fa-clock mr-1"></i>${timeFormatted}</span>
