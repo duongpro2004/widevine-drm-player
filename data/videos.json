@@ -1,0 +1,35 @@
+[
+  {
+    "id": "vid_widevine_local_debug",
+    "title": "Angel One (Widevine - Qua Local Debug License Server)",
+    "streamUrl": "https://storage.googleapis.com/shaka-demo-assets/angel-one-widevine/dash.mpd",
+    "drmType": "widevine",
+    "licenseServer": "/api/drm/license",
+    "headers": "{\n  \"Authorization\": \"Bearer sample-jwt-widevine-token-xyz123\",\n  \"X-Client-Version\": \"2.4.0\",\n  \"X-User-ID\": \"tester_99\"\n}",
+    "description": "Luồng Widevine gửi license request qua server local của app để hiển thị toàn bộ headers client gửi lên ở cửa sổ Debug!",
+    "poster": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=800&q=80",
+    "createdAt": "2026-09-12T12:43:43.952Z"
+  },
+  {
+    "id": "vid_widevine_direct",
+    "title": "Angel One (Widevine - Google Direct CWIP)",
+    "streamUrl": "https://storage.googleapis.com/shaka-demo-assets/angel-one-widevine/dash.mpd",
+    "drmType": "widevine",
+    "licenseServer": "https://cwip-shaka-player.appspot.com/no_auth",
+    "headers": "{}",
+    "description": "Luồng DASH Widevine kết nối trực tiếp đến license server Google Shaka không qua proxy.",
+    "poster": "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800&q=80",
+    "createdAt": "2026-09-12T12:43:43.953Z"
+  },
+  {
+    "id": "vid_clear_03",
+    "title": "Sintel (Clear DASH Multi-bitrate)",
+    "streamUrl": "https://storage.googleapis.com/shaka-demo-assets/sintel/dash.mpd",
+    "drmType": "none",
+    "licenseServer": "",
+    "headers": "{}",
+    "description": "Luồng phim ngắn Sintel không mã hóa để kiểm tra tính năng chuyển đổi độ phân giải (ABR).",
+    "poster": "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&q=80",
+    "createdAt": "2026-09-12T12:43:43.953Z"
+  }
+]

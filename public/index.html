@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Widevine DRM Player & Client CRUD Studio</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Shaka Player UI CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.11.7/controls.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.11.7/shaka-player.ui.min.js"></script>
+  
+  <!-- Custom Styling -->
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- TOP NAVIGATION HEADER -->
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-8 py-3.5">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+          <i class="fa-solid fa-shield-halved text-white text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">
+            Widevine DRM Studio
+          </h1>
+          <p class="text-xs text-slate-400">Trình phát DRM & Quản lý CRUD Luồng Video</p>
+        </div>
+      </div>
+
+      <!-- STATUS BADGES & QUICK ACTIONS -->
+      <div class="flex items-center space-x-3">
+        <!-- Widevine CDM Detection Badge -->
+        <div id="cdm-badge" class="px-3 py-1.5 rounded-full text-xs font-medium flex items-center space-x-2 bg-slate-800/80 border border-slate-700 text-slate-300 shadow-inner">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+          <span id="cdm-status-text">Đang kiểm tra CDM...</span>
+        </div>
+
+        <!-- Debug Window Toggle Button -->
+        <button id="btn-toggle-debug-top" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white flex items-center space-x-2 transition shadow-md shadow-indigo-600/25">
+          <i class="fa-solid fa-bug"></i>
+          <span>Cửa sổ Debug License</span>
+          <span id="debug-counter-badge" class="px-1.5 py-0.5 rounded-full bg-indigo-900/90 text-[10px] text-indigo-200 font-mono">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto w-full px-4 lg:px-8 py-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT COLUMN: VIDEO PLAYER & DRM STATS (7 COLS) -->
+    <section class="lg:col-span-7 flex flex-col space-y-4">
+      
+      <!-- PLAYER WRAPPER -->
+      <div class="glass-card rounded-2xl p-2.5 shadow-2xl border border-slate-800">
+        <div id="video-container" class="shaka-video-container aspect-video rounded-xl bg-black overflow-hidden shadow-inner relative group">
+          <video id="video-player" class="w-full h-full" autoplay playsinline></video>
+        </div>
+
+        <!-- CURRENT PLAYING INFO BAR -->
+        <div class="mt-3 px-2 flex items-center justify-between">
+          <div class="flex items-center space-x-2.5 overflow-hidden">
+            <span id="current-drm-badge" class="px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider bg-violet-500/20 text-violet-300 border border-violet-500/30">
+              WIDEVINE
+            </span>
+            <h2 id="current-video-title" class="font-semibold text-slate-100 truncate text-sm">
+              Angel One (Widevine - Qua Local Debug License Server)
+            </h2>
+          </div>
+          <div class="flex items-center space-x-2 text-xs text-slate-400 shrink-0">
+            <span id="player-state-pill" class="flex items-center space-x-1.5 px-2 py-0.5 rounded bg-slate-800/80">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span id="player-state-text">Sẵn sàng</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STREAM & DRM METRICS BAR -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs font-mono">
+        <div class="glass-card p-2.5 rounded-xl border border-slate-800/80">
+          <span class="text-slate-400 block text-[10px] uppercase font-sans font-medium">Độ phân giải</span>
+          <span id="metric-resolution" class="font-bold text-slate-200 text-sm mt-0.5 block">--</span>
+        </div>
+        <div class="glass-card p-2.5 rounded-xl border border-slate-800/80">
+          <span class="text-slate-400 block text-[10px] uppercase font-sans font-medium">Băng thông video</span>
+          <span id="metric-bandwidth" class="font-bold text-indigo-400 text-sm mt-0.5 block">--</span>
+        </div>
+        <div class="glass-card p-2.5 rounded-xl border border-slate-800/80">
+          <span class="text-slate-400 block text-[10px] uppercase font-sans font-medium">Khóa DRM Key</span>
+          <span id="metric-keys" class="font-bold text-emerald-400 text-sm mt-0.5 block">--</span>
+        </div>
+        <div class="glass-card p-2.5 rounded-xl border border-slate-800/80">
+          <span class="text-slate-400 block text-[10px] uppercase font-sans font-medium">Thời gian Buffer</span>
+          <span id="metric-buffer" class="font-bold text-amber-400 text-sm mt-0.5 block">0s</span>
+        </div>
+      </div>
+
+      <!-- INSPECTOR & DEBUG CONSOLE TABBED VIEW -->
+      <div class="glass-card rounded-2xl border border-slate-800 overflow-hidden flex flex-col flex-1 min-h-[300px]">
+        <!-- Tab Headers -->
+        <div class="flex items-center justify-between border-b border-slate-800 px-4 bg-slate-900/60">
+          <div class="flex space-x-1">
+            <button id="tab-btn-headers" class="px-4 py-2.5 text-xs font-semibold text-indigo-400 border-b-2 border-indigo-500 flex items-center space-x-2 transition">
+              <i class="fa-solid fa-network-wired"></i>
+              <span>Cửa sổ Debug License Headers</span>
+              <span id="tab-badge-headers-count" class="px-1.5 py-0.2 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px]">0</span>
+            </button>
+            <button id="tab-btn-logs" class="px-4 py-2.5 text-xs font-medium text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center space-x-2 transition">
+              <i class="fa-solid fa-terminal"></i>
+              <span>Nhật ký Player</span>
+            </button>
+          </div>
+          <!-- Tab Actions -->
+          <div class="flex items-center space-x-2 py-2">
+            <button id="btn-refresh-logs" title="Làm mới" class="p-1.5 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800 text-xs">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+            <button id="btn-clear-logs" title="Xoá log" class="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 text-xs">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 1: LICENSE SERVER & CLIENT HEADER DEBUGGER -->
+        <div id="tab-content-headers" class="p-3 flex-1 flex flex-col overflow-hidden">
+          <div class="mb-2 flex items-center justify-between text-xs text-slate-400">
+            <span class="flex items-center space-x-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span>License Server Inspector đang lắng nghe tại <code class="text-indigo-300 bg-slate-800/80 px-1 py-0.5 rounded">/api/drm/license</code></span>
+            </span>
+            <span class="text-[11px]">Tự động cập nhật mỗi 2s</span>
+          </div>
+
+          <!-- Logs List Container -->
+          <div id="license-requests-list" class="flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[360px]">
+            <!-- Dynamic request log cards inserted by app.js -->
+            <div class="text-center py-12 text-slate-500 text-xs">
+              <i class="fa-solid fa-satellite-dish text-2xl mb-2 text-slate-600 block"></i>
+              Chưa có yêu cầu cấp phép nào gửi lên.<br>
+              Hãy bấm phát luồng Widevine để kiểm tra các thông số header!
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 2: SHAKA PLAYER TERMINAL LOGS -->
+        <div id="tab-content-logs" class="hidden p-3 flex-1 overflow-hidden flex flex-col">
+          <div id="terminal-logs" class="log-terminal flex-1 overflow-y-auto bg-slate-950 rounded-xl p-3 text-xs space-y-1.5 border border-slate-850 max-h-[360px]">
+            <div class="text-slate-500 italic">// Hệ thống sẵn sàng...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: CLIENT CRUD VIDEO MANAGEMENT (5 COLS) -->
+    <section class="lg:col-span-5 flex flex-col space-y-4">
+      
+      <!-- CRUD ACTION BAR -->
+      <div class="glass-card rounded-2xl p-4 border border-slate-800 flex flex-col space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-slate-100 text-sm flex items-center space-x-2">
+              <i class="fa-solid fa-list-check text-indigo-400"></i>
+              <span>Quản lý Luồng Video (CRUD)</span>
+            </h3>
+            <p class="text-xs text-slate-400">Thêm, sửa, xoá và kiểm thử luồng DRM trực tiếp từ client</p>
+          </div>
+          <button id="btn-open-create-modal" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center space-x-1.5 transition shadow-lg shadow-indigo-600/20">
+            <i class="fa-solid fa-plus"></i>
+            <span>Thêm Video</span>
+          </button>
+        </div>
+
+        <!-- SEARCH & FILTER -->
+        <div class="flex items-center space-x-2">
+          <div class="relative flex-1">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+            <input type="text" id="input-search" placeholder="Tìm video theo tên..." class="w-full pl-8 pr-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700/80 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+          </div>
+          <select id="select-filter-drm" class="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700/80 text-xs text-slate-300 focus:outline-none focus:border-indigo-500">
+            <option value="all">Tất cả DRM</option>
+            <option value="widevine">Widevine DRM</option>
+            <option value="clearkey">ClearKey</option>
+            <option value="none">Không DRM</option>
+          </select>
+          <button id="btn-reset-data" title="Khôi phục dữ liệu mẫu ban đầu" class="p-2 rounded-lg bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-amber-400 text-xs border border-slate-800 transition">
+            <i class="fa-solid fa-rotate-left"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- VIDEOS LIST CONTAINER (SCROLLABLE) -->
+      <div id="videos-container" class="space-y-3 overflow-y-auto flex-1 max-h-[720px] pr-1">
+        <!-- Dynamic video cards loaded here -->
+        <div class="text-center py-12 text-slate-500 text-xs">
+          <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-indigo-500 block"></i>
+          Đang tải danh sách video...
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: ADD / EDIT VIDEO FORM (CLIENT CRUD) -->
+  <div id="video-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="glass-card rounded-2xl border border-slate-700 w-full max-w-xl p-6 shadow-2xl overflow-hidden relative">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+        <h3 id="modal-title" class="text-base font-bold text-slate-100 flex items-center space-x-2">
+          <i class="fa-solid fa-film text-indigo-400"></i>
+          <span>Thêm luồng Video mới</span>
+        </h3>
+        <button id="btn-close-modal" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <!-- Quick Template Presets -->
+      <div class="mb-4 bg-slate-900/70 p-3 rounded-xl border border-slate-800 text-xs flex items-center justify-between">
+        <span class="text-slate-400 font-medium">Mẫu nhanh:</span>
+        <div class="flex space-x-2">
+          <button type="button" id="btn-preset-widevine-local" class="px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 font-medium border border-indigo-500/30 transition">
+            + Widevine Debug Server
+          </button>
+          <button type="button" id="btn-preset-clearkey" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-medium border border-emerald-500/30 transition">
+            + ClearKey Server
+          </button>
+        </div>
+      </div>
+
+      <!-- Form Inputs -->
+      <form id="video-form" class="space-y-4 text-xs">
+        <input type="hidden" id="form-video-id" value="">
+
+        <!-- Title -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5">Tiêu đề video <span class="text-rose-400">*</span></label>
+          <input type="text" id="form-title" required placeholder="Ví dụ: My Test Stream (Widevine)" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-750 text-slate-100 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <!-- Stream URL -->
+        <div>
+          <label class="block font-medium text-slate-300 mb-1.5">Đường dẫn luồng (MPD / DASH) <span class="text-rose-400">*</span></label>
+          <input type="url" id="form-stream-url" required placeholder="https://domain.com/path/manifest.mpd" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-750 text-slate-100 font-mono focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <!-- DRM Type & License Server in 2 cols -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1.5">Hệ thống mã hóa DRM</label>
+            <select id="form-drm-type" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-750 text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="widevine">Widevine DRM (com.widevine.alpha)</option>
+              <option value="clearkey">ClearKey DRM (org.w3.clearkey)</option>
+              <option value="none">Không mã hóa (Clear Stream)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-slate-300 mb-1.5">License Server URL</label>
+            <input type="text" id="form-license-server" placeholder="/api/drm/license hoặc URL ngoài" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-750 text-slate-100 font-mono focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <!-- Custom Request Headers (Client Headers) -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="font-medium text-slate-300">Custom Request Headers (JSON gửi lên License Server)</label>
+            <span class="text-[10px] text-indigo-400">Hiện tại cửa sổ Debug</span>
+          </div>
+          <textarea id="form-headers" rows="3" placeholder='{\n  "Authorization": "Bearer secret_token_123",\n  "X-Custom-Client": "my-app-v1"\n}' class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-750 text-slate-100 font-mono text-[11px] focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+
+        <!-- Description & Poster -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1.5">Mô tả tóm tắt</label>
+            <input type="text" id="form-description" placeholder="Ghi chú về luồng test..." class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-750 text-slate-100 focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block font-medium text-slate-300 mb-1.5">Ảnh bìa Poster URL</label>
+            <input type="url" id="form-poster" placeholder="https://..." class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-750 text-slate-100 focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <!-- Form Buttons -->
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-end space-x-3">
+          <button type="button" id="btn-cancel-modal" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 font-medium transition">
+            Hủy
+          </button>
+          <button type="submit" id="btn-save-video" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition shadow-lg shadow-indigo-600/30 flex items-center space-x-2">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span id="btn-save-text">Lưu Video</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- Application Logic Modules -->
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "widevine-drm-crud-player",
+  "version": "1.0.0",
+  "description": "Video player web app supporting Widevine DRM and client-side CRUD for video streams",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
